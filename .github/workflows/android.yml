@@ -24,16 +24,27 @@ jobs:
           channel: "stable"
           cache: true
 
+      - name: Create temp Flutter app
+        run: flutter create -t app build_app
+
+      - name: Copy your Flutter code into temp app
+        run: |
+          rm -rf build_app/lib
+          cp -r android_flutter/lib build_app/lib
+          if [ -f android_flutter/pubspec.yaml ]; then cp android_flutter/pubspec.yaml build_app/pubspec.yaml; fi
+          if [ -f android_flutter/pubspec.lock ]; then cp android_flutter/pubspec.lock build_app/pubspec.lock; fi
+          if [ -d android_flutter/assets ]; then cp -r android_flutter/assets build_app/assets; fi
+
       - name: Flutter pub get
-        working-directory: android_flutter
+        working-directory: build_app
         run: flutter pub get
 
       - name: Build release APK
-        working-directory: android_flutter
+        working-directory: build_app
         run: flutter build apk --release
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: Android-APK
-          path: android_flutter/build/app/outputs/flutter-apk/app-release.apk
+          path: build_app/build/app/outputs/flutter-apk/app-release.apk
