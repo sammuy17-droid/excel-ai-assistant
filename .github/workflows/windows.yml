@@ -1,0 +1,44 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: windows_electron/package-lock.json
+
+      - name: Install dependencies
+        working-directory: windows_electron
+        run: |
+          if (Test-Path package-lock.json) { npm ci } else { npm install }
+
+      - name: Build/Package
+        working-directory: windows_electron
+        run: |
+          if ((npm run | Select-String -Quiet "dist")) { npm run dist }
+          elseif ((npm run | Select-String -Quiet "build")) { npm run build }
+          else { npx electron-builder --win --x64 }
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-EXE
+          path: |
+            windows_electron/dist/**
+            windows_electron/release/**
+            windows_electron/out/**
