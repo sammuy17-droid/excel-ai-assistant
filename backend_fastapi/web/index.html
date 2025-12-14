@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Excel AI Assistant</title>
+  <style>
+    :root{--bg:#0b1220;--card:#101a31;--muted:#94a3b8;--text:#e2e8f0;--accent:#38bdf8;--danger:#fb7185;}
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+    body{margin:0;background:linear-gradient(180deg,#070b14,#0b1220);color:var(--text);}
+    .wrap{max-width:980px;margin:0 auto;padding:28px 18px 60px;}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+    .brand{display:flex;flex-direction:column;gap:4px}
+    .brand h1{margin:0;font-size:22px;letter-spacing:.2px}
+    .brand p{margin:0;color:var(--muted);font-size:13px}
+    .lang{display:flex;gap:10px;align-items:center}
+    select{background:#0f172a;color:var(--text);border:1px solid rgba(148,163,184,.25);border-radius:10px;padding:10px 12px}
+    .grid{margin-top:18px;display:grid;grid-template-columns:1.2fr .8fr;gap:14px}
+    @media(max-width:860px){.grid{grid-template-columns:1fr}}
+    .card{background:rgba(16,26,49,.85);border:1px solid rgba(148,163,184,.15);border-radius:16px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.28)}
+    .card h2{margin:0 0 10px 0;font-size:16px}
+    label{display:block;margin:10px 0 6px;color:var(--muted);font-size:12px}
+    input[type="text"]{width:100%;background:#0f172a;color:var(--text);border:1px solid rgba(148,163,184,.25);border-radius:12px;padding:12px 12px}
+    input[type="file"]{width:100%;background:#0f172a;color:var(--muted);border:1px dashed rgba(148,163,184,.35);border-radius:12px;padding:12px}
+    .hint{color:var(--muted);font-size:12px;margin-top:6px;line-height:1.4}
+    .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    button{cursor:pointer;border:0;border-radius:12px;padding:12px 14px;font-weight:600}
+    .primary{background:linear-gradient(90deg,var(--accent),#60a5fa);color:#07121f}
+    .ghost{background:transparent;color:var(--text);border:1px solid rgba(148,163,184,.25)}
+    .status{margin-top:12px;padding:12px;border-radius:12px;border:1px solid rgba(148,163,184,.15);background:#0f172a}
+    .status b{display:block;margin-bottom:6px}
+    .small{font-size:12px;color:var(--muted);white-space:pre-wrap}
+    .error{border-color:rgba(251,113,133,.4);background:rgba(251,113,133,.08)}
+    .ok{border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.06)}
+    .list{margin:10px 0 0 0;padding-left:18px;color:var(--muted);font-size:12px;line-height:1.5}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    a{color:var(--accent);text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <h1 id="t_title">Excel AI Assistant</h1>
+        <p id="t_sub">Ustozlar uchun Excel shablonini avtomatik to‘ldirish</p>
+      </div>
+      <div class="lang">
+        <span style="color:var(--muted);font-size:12px" id="t_lang">Til</span>
+        <select id="langSel">
+          <option value="uz">O‘zbekcha</option>
+          <option value="ru">Русский</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2 id="t_form">Fayllarni yuklash</h2>
+
+        <label id="t_teacher_lbl">Ustoz F.I.O (familiya ism otasining ismi)</label>
+        <input id="teacher" type="text" placeholder="Qodirov Muhammadullo Shokirjon o‘g‘li" />
+
+        <label id="t_tpl_lbl">1) Shablon Excel (.xlsx) — faqat 1 ta</label>
+        <input id="tpl" type="file" accept=".xlsx" />
+
+        <label id="t_data_lbl">2) Ma’lumotlar Excel (.xlsx) — 1 dan 20 tagacha</label>
+        <input id="data" type="file" accept=".xlsx" multiple />
+        <div class="hint" id="t_hint">AI shablonni o‘zi tahlil qiladi va 2-fayllardagi ma’lumotlar bilan to‘ldiradi. Formulalar buzilmaydi.</div>
+
+        <div class="btnrow">
+          <button class="primary" id="btnRun">Avto to‘ldirish</button>
+          <button class="ghost" id="btnClear">Tozalash</button>
+        </div>
+
+        <div id="status" class="status">
+          <b id="t_status">Holat</b>
+          <div class="small" id="statusText">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 id="t_notes">Qoidalar</h2>
+        <ul class="list" id="rules">
+          <li>Shablon yuklangach, AI avtomatik ustun/satrlarni aniqlaydi.</li>
+          <li>1–20 ta Excel fayldan sinf, o‘quvchilar va BSB/CHSB ballar olinadi.</li>
+          <li>Ustoz ismi avtomatik: <span class="mono">Qodirov M.SH.</span> formatda joylanadi.</li>
+          <li>Natija tayyor bo‘lgach, yuklab olasiz.</li>
+        </ul>
+        <div class="hint">
+          Backend manzili: <span class="mono" id="apiUrlLabel">http://localhost:8000</span><br/>
+          <span id="t_api">O‘zgartirish uchun: URL parametri</span> <span class="mono">?api=https://your-domain</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const i18n = {
+  uz: {
+    title:"Excel AI Assistant",
+    sub:"Ustozlar uchun Excel shablonini avtomatik to‘ldirish",
+    lang:"Til",
+    form:"Fayllarni yuklash",
+    teacher_lbl:"Ustoz F.I.O (familiya ism otasining ismi)",
+    tpl_lbl:"1) Shablon Excel (.xlsx) — faqat 1 ta",
+    data_lbl:"2) Ma’lumotlar Excel (.xlsx) — 1 dan 20 tagacha",
+    hint:"AI shablonni o‘zi tahlil qiladi va 2-fayllardagi ma’lumotlar bilan to‘ldiradi. Formulalar buzilmaydi.",
+    run:"Avto to‘ldirish",
+    clear:"Tozalash",
+    status:"Holat",
+    rules:[
+      "Shablon yuklangach, AI avtomatik ustun/satrlarni aniqlaydi.",
+      "1–20 ta Excel fayldan sinf, o‘quvchilar va BSB/CHSB ballar olinadi.",
+      "Ustoz ismi avtomatik: Qodirov M.SH. formatda joylanadi.",
+      "Natija tayyor bo‘lgach, yuklab olasiz."
+    ],
+    api:"O‘zgartirish uchun: URL parametri"
+  },
+  ru: {
+    title:"Excel AI Assistant",
+    sub:"Автозаполнение Excel-шаблона для учителей",
+    lang:"Язык",
+    form:"Загрузка файлов",
+    teacher_lbl:"Ф.И.О учителя (фамилия имя отчество)",
+    tpl_lbl:"1) Excel-шаблон (.xlsx) — только 1 файл",
+    data_lbl:"2) Excel-данные (.xlsx) — от 1 до 20 файлов",
+    hint:"Движок сам анализирует шаблон и заполняет его данными из загруженных файлов. Формулы не ломаются.",
+    run:"Заполнить автоматически",
+    clear:"Очистить",
+    status:"Статус",
+    rules:[
+      "После загрузки шаблона система сама определяет нужные столбцы/строки.",
+      "Из 1–20 файлов берутся класс, ученики и баллы BSB/CHSB.",
+      "Имя учителя автоматически приводится к формату: Qodirov M.SH.",
+      "Готовый файл можно скачать."
+    ],
+    api:"Изменить через параметр URL"
+  },
+  en: {
+    title:"Excel AI Assistant",
+    sub:"Auto-fill Excel templates for teachers",
+    lang:"Language",
+    form:"Upload files",
+    teacher_lbl:"Teacher full name (Surname Name Patronymic)",
+    tpl_lbl:"1) Template Excel (.xlsx) — single file",
+    data_lbl:"2) Data Excel (.xlsx) — 1 to 20 files",
+    hint:"The engine analyzes the template automatically and fills it using uploaded files. Formulas are preserved.",
+    run:"Auto fill",
+    clear:"Clear",
+    status:"Status",
+    rules:[
+      "After uploading the template, the engine auto-detects editable areas.",
+      "From 1–20 files it extracts class, students, and BSB/CHSB scores.",
+      "Teacher name is shortened automatically (e.g., Qodirov M.SH.).",
+      "Download the final file when ready."
+    ],
+    api:"Change via URL parameter"
+  }
+};
+
+function setLang(l){
+  const t=i18n[l]||i18n.uz;
+  document.getElementById("t_title").textContent=t.title;
+  document.getElementById("t_sub").textContent=t.sub;
+  document.getElementById("t_lang").textContent=t.lang;
+  document.getElementById("t_form").textContent=t.form;
+  document.getElementById("t_teacher_lbl").textContent=t.teacher_lbl;
+  document.getElementById("t_tpl_lbl").textContent=t.tpl_lbl;
+  document.getElementById("t_data_lbl").textContent=t.data_lbl;
+  document.getElementById("t_hint").textContent=t.hint;
+  document.getElementById("btnRun").textContent=t.run;
+  document.getElementById("btnClear").textContent=t.clear;
+  document.getElementById("t_status").textContent=t.status;
+  const rules=document.getElementById("rules");
+  rules.innerHTML="";
+  t.rules.forEach(r=>{const li=document.createElement("li");li.textContent=r;rules.appendChild(li);});
+  document.getElementById("t_api").textContent=t.api;
+  document.documentElement.lang=l;
+}
+
+const qs=new URLSearchParams(location.search);
+const API=(qs.get("api")||"http://localhost:8000").replace(/\/$/,"");
+document.getElementById("apiUrlLabel").textContent=API;
+
+const statusEl=document.getElementById("status");
+const statusText=document.getElementById("statusText");
+function setStatus(kind, title, detail){
+  statusEl.classList.remove("error","ok");
+  if(kind==="error") statusEl.classList.add("error");
+  if(kind==="ok") statusEl.classList.add("ok");
+  statusText.textContent = (title||"") + (detail?("\n"+detail):"");
+}
+
+document.getElementById("btnClear").onclick=()=>{
+  document.getElementById("teacher").value="";
+  document.getElementById("tpl").value="";
+  document.getElementById("data").value="";
+  setStatus("", "—", "");
+};
+
+document.getElementById("btnRun").onclick=async ()=>{
+  const teacher=document.getElementById("teacher").value.trim();
+  const tpl=document.getElementById("tpl").files[0];
+  const dataFiles=[...document.getElementById("data").files];
+
+  if(!teacher){ setStatus("error","Teacher name is required."); return; }
+  if(!tpl){ setStatus("error","Template file is required."); return; }
+  if(dataFiles.length<1){ setStatus("error","At least one data file is required."); return; }
+  if(dataFiles.length>20){ setStatus("error","Max 20 data files allowed."); return; }
+
+  const fd=new FormData();
+  fd.append("teacher_fullname", teacher);
+  fd.append("template_file", tpl, tpl.name);
+  dataFiles.forEach(f=>fd.append("data_files", f, f.name));
+
+  try{
+    setStatus("", "Processing…", "Uploading files and filling template.");
+    const res=await fetch(API+"/process",{method:"POST",body:fd});
+    if(!res.ok){
+      const txt=await res.text();
+      setStatus("error","Error",txt.slice(0,800));
+      return;
+    }
+    const blob=await res.blob();
+    const dispo=res.headers.get("content-disposition")||"";
+    let filename="result.xlsx";
+    const m=/filename="([^"]+)"/.exec(dispo);
+    if(m) filename=m[1];
+
+    const a=document.createElement("a");
+    const url=URL.createObjectURL(blob);
+    a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click();
+    a.remove(); URL.revokeObjectURL(url);
+
+    const rep=res.headers.get("x-report");
+    setStatus("ok","Done ✅", rep?rep:"File downloaded.");
+  }catch(e){
+    setStatus("error","Network error", String(e));
+  }
+};
+
+setLang(qs.get("lang")||"uz");
+document.getElementById("langSel").value=(qs.get("lang")||"uz");
+document.getElementById("langSel").addEventListener("change", e=>setLang(e.target.value));
+</script>
+</body>
+</html>
